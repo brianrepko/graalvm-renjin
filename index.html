@@ -1,0 +1,334 @@
+<!doctype html>
+<html lang="en">
+	<head>
+		<meta charset="utf-8">
+		<title>GraalVM / FastR and Renjin</title>
+		<meta name="description" content="GraalVM / FastR and Renjin">
+		<meta name="author" content="Brian Repko">
+		<meta name="apple-mobile-web-app-capable" content="yes">
+		<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+		<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, minimal-ui">
+		<link rel="stylesheet" href="https://revealjs.com/css/reveal.css">
+		<link rel="stylesheet" href="https://revealjs.com/css/theme/black.css" id="theme">
+		<link rel="stylesheet" href="https://revealjs.com/lib/css/zenburn.css">
+		<script>
+			var link = document.createElement( 'link' );
+			link.rel = 'stylesheet';
+			link.type = 'text/css';
+			link.href = window.location.search.match( /print-pdf/gi ) 
+                ? 'https://revealjs.com/css/print/pdf.css' 
+                : 'https://revealjs.com/css/print/paper.css';
+			document.getElementsByTagName( 'head' )[0].appendChild( link );
+		</script>
+	</head>
+	<body>
+		<div class="reveal">
+			<div class="slides">
+
+				<section>
+					<h1>GraalVM / FastR and Renjin</h1>
+					<p>Twin Cities R Users Group<br/>Mar 28, 2019</p>
+				</section>
+
+        <section>
+          <!-- GraalVM/FastR -->
+          <section>
+            <h3>GraalVM / FastR</h3>
+            <ul style="font-size: 90%">
+              <li>R language implementation inside GraalVM</li>
+              <li><a href="https://www.graalvm.org/" target="_blank">GraalVM</a> - polyglot VM</li>
+              <ul>
+                <li>Java8 / JVM-languages, JavaScript - primary</li>
+                <li>Ruby, R, Python - "experimental"</li>
+                <li>Any LLVM language - C/C++, Fortran, Julia, etc.</li>
+              </ul>
+              <li>Able to create native images</li>
+              <ul>
+                <li>Specify which language support is needed</li>
+                <li>Used by Twitter for their Docker-based services</li>
+              </ul>
+              <li>Embeddable in Oracle/MySQL DB</li>
+              <li>Oracle as main sponsor - <a href="https://github.com/oracle/graal" target="_blank">graal Github</a> &amp; <a href="https://github.com/oracle/fastr" target="_blank">fastr Github</a></li>
+            </ul>
+          </section>
+
+          <section>
+            <h3>GraalVM Architecture</h3>
+            <img width="600px" src="images/graalvm-arch.png" /><br />
+            <div style="font-size: 50%"><code>https://www.tomitribe.com/codeone/dev6016/</code></div>
+          </section>
+
+          <section>
+            <h3>Why GraalVM / FastR?</h3>
+            <ul>
+              <li><a href="https://medium.com/graalvm/faster-r-with-fastr-4b8db0e0dceb" target="_blank">faster</a>, secure, distributed, portable, tool support</li>
+              <ul>
+                <li>JIT is slower to optimize but much faster</li>
+                <li>native images are fast and small</li>
+              </ul>
+              <li>polyglot capabilities - any to any</li>
+              <li>FastR compatible with GNU R 3.5.1</li>
+              <ul>
+                <li>provides R and Rscript as entry points</li>
+                <li>native R performance close to Java</li>
+                <li>C/C++/Fortran/rJava integration is faster</li>
+                <li>Some (few) packages known not to work</li>
+                <!-- some packages make use of unspecified GNU R details -->
+                <li>IDE support varies (no RStudio)</li>
+              </ul>
+            </ul>
+          </section>
+
+          <section>
+            <h3>Installing GraalVM / FastR</h3>
+            <ul style="font-size: 90%">
+              <li>Linux and MacOS - from Oracle (CE/EE)</li>
+              <ul>
+                <!-- Oracle is letting people (for now) use EE -->
+                <li>unzip, set <code>GRAALVM_HOME</code> and <code>JAVA_HOME</code></li>
+                <li>add <code>GRAALVM_HOME/bin</code> to <code>PATH</code></li>
+              </ul>
+              <ul>
+                <li>JDK tools, JS tools (<code>js, node, npm</code>), and</li>
+                <ul>
+                  <li><code>gu, native-image, lli, polyglot</code></li>
+                </ul>
+              </ul>
+              <li>Install FastR with <code>gu install R</code></li>
+              <ul>
+                <li>Installs to <code>GRAALVM_HOME/jre/languages/R</code></li>
+                <li>requires OpenMP library and C/C++/Fortran compilers</li>
+                <li>Use <code>configure_fastr</code> script to setup <code>GRAALVM_HOME/jre/languages/R/etc/Makeconf</code></li>
+              </ul>
+            </ul>
+          </section>
+
+          <section>
+            <h3>Using FastR - packages</h3>
+            <ul>
+              <li><code style="font-size: 80%">install.packages</code> works likes normal</li>
+              <li><code style="font-size: 80%">getOption("repos")</code> points to MRAN 2019-02-13</li>
+              <li><code style="font-size: 80%">.libPaths()</code> points to FastR install dir</li>
+              <li><code style="font-size: 80%">install.fastr.packages</code> for special packages</li>
+              <ul>
+                <li><code style="font-size: 80%">data.table, rJava, refcmp, graalvm</code></li>
+              </ul>
+              <li>There is an <a href="https://www.graalvm.org/docs/reference-manual/compatibility/" target="_blank">online package compatibility check</a></li>
+              <li>grid-based graphics works (lattice, ggplot2,...)</li>
+              <li>parallel has SHARED cluster type for multi-threading</li>
+            </ul>
+          </section>
+
+          <section>
+            <h3>Using FastR - interop</h3>
+            <ul>
+              <li>Polygot API available to all languages</li>
+              <li>All examples (from/to) can be found <a href="https://www.graalvm.org/docs/reference-manual/polyglot/" target="_blank">online</a></li>
+            </ul>
+<pre style="font-size: 45%">
+<code class="hljs" data-trim contenteditable>
+import org.graalvm.polyglot.*;
+
+class Polyglot {
+  public static void main(String[] args) {
+    Context polyglot = Context.newBuilder().
+                       allowAllAccess(true).build();
+    Value array = polyglot.eval("R", "c(1,2,42,4)");
+    int result = array.getArrayElement(2).asInt();
+    System.out.println(result);
+  }
+}
+</code>
+</pre>            
+          </section>
+
+          <section>
+            <h3>Using FastR - R calling *</h3>
+            <ul style="font-size: 60%">
+              <li>polyglot features</li>
+              <ul>
+                <li>eval.polyglot('lang','code')</li>
+                <li>eval.polyglot(path = '/path/to/code.ext')</li>
+                <li>export('polyglot-value-name', rObject)</li>
+                <li>import('polyglot-value-name')</li>
+              </ul>
+              <li>JVM features - java.type - to get class and new method</li>
+            </ul>
+<pre style="font-size: 45%">
+<code class="hljs" data-trim contenteditable>
+x <- eval.polyglot('ruby', '[1,2,3]')
+print(x[[1]])
+# [1] 1
+
+x <- eval.polyglot(path='r_example.js')
+print(x$a)
+# [1] "value"
+
+export('robj', c(1,2,3))
+eval.polyglot('js', paste0(
+    'rvalue = Polyglot.import("robj"); ',
+    'console.log("JavaScript: " + rvalue.length);'))
+# JavaScript: 3
+# NULL -- the return value of eval.polyglot
+</code>
+</pre>            
+          </section>
+
+        </section>
+
+        <section>
+          <!-- Renjin -->
+          <section>
+            <h3><a href="http://www.renjin.org/" target="_blank">Renjin</a></h3>
+            <ul>
+              <li>R language implementation on a JVM</li>
+              <ul>
+                <li>Compiles R to JVM bytecode</li>
+                <li>Packages as jars, Maven-based repository</li>
+              </ul>
+              <li>Compiles C/C++/Fortran to JVM bytecode</li>
+              <ul>
+                <li>Makes use of Gimple &amp; the <a href="http://www.renjin.org/blog/2016-01-31-introducing-gcc-bridge.html" target="_blank">GCC-Bridge</a></li>
+              </ul>
+            <li>Makes R a JVM language (jar+JVM)</li>
+            <li><a href="http://www.bedatadriven.com/" target="_blank">BeDataDriven</a> as main sponsor</li>
+            <ul>
+              <li>Commercial support and used by them</li>
+              <li>Hosts the <a href="http://packages.renjin.org/" target="_blank">package repository</a> &amp; <a href="https://github.com/bedatadriven/renjin" target="_blank">renjin Github</a></li>
+            </ul>
+          </section>
+
+          <section>
+            <h3>Why Renjin?</h3>
+            <ul>
+              <li>Similar reasons to GraalVM / FastR</li>
+              <ul>
+                <li>more portable than FastR</li>
+                <li>almost always embedded in a JVM language app</li>
+                <li>not as much support and tooling</li>
+              </ul>
+              <li>Public Maven repository for R packages</li>
+              <ul>
+                <li>Supports multiple versions of packages</li>
+                <li>Build packages via Maven with a pom.xml file</li>
+                <li>If package doesn't work - you're a bit stuck</li>
+              </ul>
+              <li>Support for both CRAN and BioConductor</li>
+              <li><code style="font-size: 80%">renjin</code> package for use on GNU R for optimization</li>
+            </ul>
+          </section>
+
+          <section>
+            <h3>Installing Renjin</h3>
+            <ul>
+              <li>Typically added to a Java application</li>
+              <ul>
+                <li>Can add to a project via Maven, Gradle, sbt</li>
+                <li>Can include in a Spark über-jar</li>
+                <li>Same for all "package" jars</li>
+              </ul>
+              <li>Linux and MacOS - from renjin.org</li>
+              <ul>
+                <li>unzip, set <code style="font-size: 80%">RENJIN_HOME</code>, add to <code style="font-size: 80%">PATH</code></li>
+                <li>install via apt (Debian / Ubuntu)</li>
+                <li><code style="font-size: 80%">renjin</code> starts the REPL</li>
+              </ul>
+              <li>Renjin Studio is an executable JAR</li>
+            </ul>
+          </section>
+
+          <section>
+            <h3>Using Renjin - packages</h3>
+            <ul>
+              <li><code style="font-size: 80%">install.packages</code> does not work</li>
+              <li><code style="font-size: 80%">library</code> will download if not there</li>
+              <li>Your library is your local Maven repository</li>
+              <li>You can also install via Maven</li>
+              <li>Package versions get a <a href="http://docs.renjin.org/en/latest/introduction.html?highlight=versions#package-versions-and-builds" target="_blank">Maven ID</a></li>
+              <ul>
+                <li>"groupId" is <code style="font-size: 80%">org.renjin.cran</code></li>
+                <li>"artifactId" is R package name</li>
+                <li>"version" is R package version and Renjin build</li>
+              </ul>
+              <li>There is an <a href="http://packages.renjin.org/" target="_blank">online package portal</a></li>
+            </ul>
+          </section>
+
+          <section>
+            <h3>Using Renjin - executing R</h3>
+            <ul>
+              <li>Makes use of <code style="font-size: 80%">javax.scripting</code> API/SPI</li>
+              <li>Renjin provides ways to send data in and out</li>
+            </ul>
+<pre style="font-size: 45%">
+<code class="hljs" data-trim contenteditable>
+RenjinScriptEngineFactory factory = new RenjinScriptEngineFactory();
+ScriptEngine engine = factory.getScriptEngine();
+
+engine.eval("df <- data.frame(x=1:10, y=(1:10)+rnorm(n=10))");
+engine.eval("print(df)");
+engine.eval("mdl <- lm(y ~ x, df)");
+
+Vector gammaVector = (Vector)engine.eval("mdl$gamma");
+double gamma = gammaVector.getElementAsDouble(0);
+</code>
+</pre>            
+          </section>
+
+          <section>
+            <h3>Using Renjin - executing Java</h3>
+            <ul>
+              <li>Renjin adds an <code style="font-size: 80%">import</code> function</li>
+              <li>Renjin converts JavaBean syntax to R</li>
+            </ul>
+<pre style="font-size: 50%">
+<code class="hljs" data-trim contenteditable>
+import(java.util.HashMap)
+import(beans.Customer)
+
+ageMap <- HashMap$new()
+ageMap$put("Bob", 33)
+ageMap$put("Carol", 41)
+print(ageMap$size())
+
+age <- ageMap$get("Carol")
+cat("Carol is ", age, " years old.\n", sep = "")
+
+bob <- Customer$new(name = "Bob", age = 36)
+carol <- Customer$new(name = "Carol", age = 41)
+cat("bob$name = ", bob$name, "\n", sep = "")
+</code>
+</pre>
+          </section>
+
+        </section>
+
+			</div>
+		</div>
+
+		<script src="https://revealjs.com/lib/js/head.min.js"></script>
+		<script src="https://revealjs.com/js/reveal.js"></script>
+		<script>
+			Reveal.initialize({
+				controls: true,
+				progress: true,
+				history: true,
+				center: true,
+				transition: 'slide',
+				dependencies: [
+					{ src: 'https://revealjs.com/lib/js/classList.js', 
+            condition: function() { return !document.body.classList; } },
+					{ src: 'https://revealjs.com/plugin/markdown/marked.js', 
+            condition: function() { return !!document.querySelector( '[data-markdown]' ); } },
+					{ src: 'https://revealjs.com/plugin/markdown/markdown.js', 
+            condition: function() { return !!document.querySelector( '[data-markdown]' ); } },
+					{ src: 'https://revealjs.com/plugin/highlight/highlight.js', 
+            async: true, 
+            callback: function() { hljs.initHighlightingOnLoad(); } },
+					{ src: 'https://revealjs.com/plugin/zoom-js/zoom.js', async: true },
+					{ src: 'https://revealjs.com/plugin/notes/notes.js', async: true }
+				]
+			});
+		</script>
+	</body>
+</html>
